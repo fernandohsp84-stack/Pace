@@ -107,18 +107,27 @@
   .proj{font-size:13.5px;font-weight:600;margin-top:12px;padding:12px;border-radius:12px;background:var(--card2);}
   .proj b{font-weight:800;}
   /* aquecimento */
-  .warm{display:flex;gap:14px;align-items:flex-start;padding:16px 0;border-top:0.5px solid var(--card2);cursor:pointer;}
+  .warm{padding:18px 0;border-top:0.5px solid var(--card2);}
   .warm:first-child{border-top:none;padding-top:2px;}
-  .warm .svgbox{flex:0 0 auto;width:72px;height:72px;border-radius:16px;background:var(--card2);display:flex;align-items:center;justify-content:center;}
-  .warm .svgbox svg{width:54px;height:54px;}
-  .warm .wb{flex:1;}
-  .warm .wb .wtop{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .warm .wb h4{margin:0;font-size:16px;font-weight:800;letter-spacing:-0.3px;}
-  .warm .wb .dur{font-size:12px;font-weight:800;color:var(--green);white-space:nowrap;}
-  .warm .wb p{margin:5px 0 0 0;font-size:13.5px;color:#d1d1d6;font-weight:500;line-height:1.45;}
-  .warm .wck{flex:0 0 auto;width:28px;height:28px;border-radius:50%;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#000;margin-top:2px;}
+  .warm .wtop{display:flex;align-items:center;gap:12px;}
+  .warm .wtop h4{margin:0;font-size:16px;font-weight:800;letter-spacing:-0.3px;flex:1;}
+  .warm .wtop .dur{font-size:12px;font-weight:800;color:var(--green);white-space:nowrap;}
+  .warm .wck{flex:0 0 auto;width:28px;height:28px;border-radius:50%;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#000;cursor:pointer;}
   .warm.done .wck{background:var(--green);border-color:var(--green);}
   .warm.done h4{color:var(--mut);}
+  .warm .figs{display:flex;gap:10px;margin:12px 0 0 0;}
+  .warm .fig{flex:1;background:var(--card2);border-radius:14px;padding:8px 4px 6px 4px;text-align:center;}
+  .warm .fig svg{width:100%;height:96px;display:block;}
+  .warm .fig .flbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--mut);margin-top:2px;}
+  .warm .fig .flbl.b{color:var(--green);}
+  .warm .arrow{flex:0 0 auto;display:flex;align-items:center;color:var(--mut2);font-size:22px;font-weight:800;}
+  .warm p{margin:11px 0 0 0;font-size:13.5px;color:#d1d1d6;font-weight:500;line-height:1.45;}
+  /* timer de descanso */
+  .rest{display:flex;align-items:center;gap:12px;margin-top:13px;background:var(--card2);border-radius:14px;padding:11px 14px;}
+  .rest .rt{flex:1;font-size:13px;font-weight:700;color:var(--mut);}
+  .rest .rt b{color:var(--ink);font-size:20px;font-weight:800;letter-spacing:-0.3px;}
+  .rest .rbtn{border:none;border-radius:11px;background:var(--blue);color:#001018;font-weight:800;font-size:14px;padding:9px 16px;cursor:pointer;font-family:inherit;}
+  .rest .rbtn.run{background:var(--card);color:var(--blue);}
   .warmsum{text-align:center;font-size:14px;font-weight:700;color:var(--mut);margin:4px 4px 0 4px;}
   .warmsum b{color:var(--green);}
   .hide{display:none;}
@@ -331,23 +340,44 @@ var warmState=load(KEY_WARM)||{};   // {dataISO: {exId:true}}
 var curPhase=1;
 
 /* ---- SVGs inline (bonecos de posição) ---- */
-var SVG={
-  // mobilidade de quadril / balanço de perna
-  hip:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="11" r="5" fill="#a5fe3a" stroke="none"/><path d="M30 16v16"/><path d="M30 22l-9 5"/><path d="M30 22l9 5"/><path d="M30 32l-7 13"/><path d="M30 32l11 9"/></svg>',
-  // agachamento / mobilidade tornozelo
-  squat:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="12" r="5" fill="#a5fe3a" stroke="none"/><path d="M30 17v11"/><path d="M30 21l-8 3"/><path d="M30 21l8 3"/><path d="M30 28l-9 6 4 11"/><path d="M30 28l9 6-4 11"/></svg>',
-  // alongamento panturrilha (em pé contra parede)
-  calf:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8v44"/><circle cx="30" cy="14" r="5" fill="#a5fe3a" stroke="none"/><path d="M30 19l-6 12"/><path d="M30 21l-14-3"/><path d="M30 21l8 7"/><path d="M30 31l-6 18"/><path d="M30 31l13 16"/></svg>',
-  // joelho ao peito / quadríceps
-  knee:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="12" r="5" fill="#a5fe3a" stroke="none"/><path d="M24 17v13"/><path d="M24 30l14-2 0 8"/><path d="M24 30l-5 17"/><path d="M24 22l8 3"/><path d="M24 22l-7 4"/></svg>',
-  // skipping / joelho alto (ativação dinâmica)
-  skip:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="11" r="5" fill="#a5fe3a" stroke="none"/><path d="M32 16v14"/><path d="M32 21l9-4"/><path d="M32 21l-8 5"/><path d="M32 30l10 4"/><path d="M32 30l-3 9 8 8"/></svg>',
-  // educativo de corrida / tiro curto
-  stride:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="33" cy="11" r="5" fill="#a5fe3a" stroke="none"/><path d="M33 16l-2 13"/><path d="M31 20l11 2"/><path d="M31 20l-9 6"/><path d="M31 29l13 7"/><path d="M31 29l-9 15"/></svg>',
-  // rotação de tronco / ativação core
-  twist:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="11" r="5" fill="#a5fe3a" stroke="none"/><path d="M30 16v14"/><path d="M16 21h28"/><path d="M30 30l-7 17"/><path d="M30 30l7 17"/></svg>',
-  // ponte de glúteo
-  bridge:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="30" r="5" fill="#a5fe3a" stroke="none"/><path d="M18 30h14l8-10"/><path d="M40 20l6 12"/><path d="M32 30l8 14"/><path d="M46 32v14"/></svg>'
+/* ---- Poses SVG anatômicas: cada exercício tem {a: inicial, b: intermediária} ---- */
+function fig(parts){
+  return '<svg viewBox="0 0 80 100" fill="none" stroke="#a5fe3a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">'+
+    '<line x1="6" y1="94" x2="74" y2="94" stroke="#48484a" stroke-width="2.5"/>'+parts+'</svg>';
+}
+var POSES={
+  hip:{ // balanço de perna apoiado na parede
+    a:fig('<line x1="70" y1="14" x2="70" y2="92" stroke="#48484a" stroke-width="2.5"/><circle cx="44" cy="20" r="7" fill="#a5fe3a" stroke="none"/><path d="M44 27v26"/><path d="M44 32l16 4"/><path d="M44 32l-8 12"/><path d="M44 53l-3 20-4 19"/><path d="M44 53l2 20 2 19"/>'),
+    b:fig('<line x1="70" y1="14" x2="70" y2="92" stroke="#48484a" stroke-width="2.5"/><circle cx="44" cy="20" r="7" fill="#a5fe3a" stroke="none"/><path d="M44 27v26"/><path d="M44 32l16 4"/><path d="M44 32l-8 12"/><path d="M44 53l3 19 3 18"/><path d="M44 53l-9 14-12 8"/>')
+  },
+  squat:{ // agachamento: em pé → descido
+    a:fig('<circle cx="40" cy="16" r="7" fill="#a5fe3a" stroke="none"/><path d="M40 23v24"/><path d="M40 28l-11 9"/><path d="M40 28l11 9"/><path d="M40 47l-6 22-2 23"/><path d="M40 47l6 22 2 23"/>'),
+    b:fig('<circle cx="40" cy="30" r="7" fill="#a5fe3a" stroke="none"/><path d="M40 37v16"/><path d="M40 41l13 3"/><path d="M40 41l-13 3"/><path d="M40 53l-13 9 5 30"/><path d="M40 53l13 9-5 30"/>')
+  },
+  bridge:{ // ponte de glúteo: deitado → quadril elevado
+    a:fig('<circle cx="16" cy="76" r="7" fill="#a5fe3a" stroke="none"/><path d="M23 78h22"/><path d="M45 78l14-2"/><path d="M45 78l16 12"/><path d="M59 76l11 14"/>'),
+    b:fig('<circle cx="16" cy="74" r="7" fill="#a5fe3a" stroke="none"/><path d="M23 76l24-14"/><path d="M47 62l9-12"/><path d="M47 62l14 28"/><path d="M56 50l8 40"/>')
+  },
+  calf:{ // panturrilha contra parede: leve → afundo
+    a:fig('<line x1="14" y1="10" x2="14" y2="92" stroke="#48484a" stroke-width="2.5"/><circle cx="40" cy="22" r="7" fill="#a5fe3a" stroke="none"/><path d="M40 29v22"/><path d="M40 34l-18-6"/><path d="M40 34l-18-2"/><path d="M40 51l-6 20-4 21"/><path d="M40 51l8 19 6 22"/>'),
+    b:fig('<line x1="14" y1="10" x2="14" y2="92" stroke="#48484a" stroke-width="2.5"/><circle cx="46" cy="26" r="7" fill="#a5fe3a" stroke="none"/><path d="M46 33l-4 18"/><path d="M42 38l-20-8"/><path d="M42 38l-20-4"/><path d="M42 51l-10 18-12 23"/><path d="M42 51l14 16 8 25"/>')
+  },
+  knee:{ // joelho ao peito: em pé → joelho elevado puxado
+    a:fig('<circle cx="40" cy="16" r="7" fill="#a5fe3a" stroke="none"/><path d="M40 23v24"/><path d="M40 28l-10 10"/><path d="M40 28l10 10"/><path d="M40 47l-4 22-2 23"/><path d="M40 47l4 22 2 23"/>'),
+    b:fig('<circle cx="40" cy="16" r="7" fill="#a5fe3a" stroke="none"/><path d="M40 23v22"/><path d="M40 28l-12 14h14"/><path d="M40 28l12 14h-14"/><path d="M40 45l-14 4 6 22"/><path d="M40 45l4 24 2 22"/>')
+  },
+  skip:{ // skipping: apoio → joelho alto
+    a:fig('<circle cx="38" cy="16" r="7" fill="#a5fe3a" stroke="none"/><path d="M38 23v23"/><path d="M38 28l12-6"/><path d="M38 28l-12 6"/><path d="M38 46l-2 23-2 23"/><path d="M38 46l4 22 4 23"/>'),
+    b:fig('<circle cx="40" cy="14" r="7" fill="#a5fe3a" stroke="none"/><path d="M40 21v23"/><path d="M40 26l13 8"/><path d="M40 26l-13-4"/><path d="M40 44l-16 4 4 20"/><path d="M40 44l8 22 2 22"/>')
+  },
+  stride:{ // educativo/passada: apoio → fase aérea
+    a:fig('<circle cx="38" cy="16" r="7" fill="#a5fe3a" stroke="none"/><path d="M38 23l2 23"/><path d="M40 28l13 6"/><path d="M40 28l-12-4"/><path d="M40 46l-8 20-4 22"/><path d="M40 46l10 18 6 24"/>'),
+    b:fig('<circle cx="42" cy="14" r="7" fill="#a5fe3a" stroke="none"/><path d="M42 21l-2 24"/><path d="M42 26l16-2"/><path d="M42 26l-15 8"/><path d="M40 45l16 8 6 18"/><path d="M40 45l-14 12-4 22"/>')
+  },
+  twist:{ // rotação de tronco: frente → girado
+    a:fig('<circle cx="40" cy="16" r="7" fill="#a5fe3a" stroke="none"/><path d="M40 23v24"/><path d="M22 30h36"/><path d="M40 47l-7 22-2 23"/><path d="M40 47l7 22 2 23"/>'),
+    b:fig('<circle cx="40" cy="16" r="7" fill="#a5fe3a" stroke="none"/><path d="M40 23v24"/><path d="M26 24l28 12"/><path d="M40 47l-7 22-2 23"/><path d="M40 47l7 22 2 23"/>')
+  }
 };
 
 /* Rotina por fase: 15 min, foco evolui (base/joelho → ativação/velocidade) */
@@ -408,28 +438,84 @@ function setPhase(ph,btn){
   renderWarm();
 }
 
+/* ---- Timer de descanso entre movimentos ---- */
+var REST_SECONDS=30;
+var restTimers={}; // exId -> {remaining, interval}
+
+function fmtSec(s){var m=Math.floor(s/60),x=s%60;return m+":"+(x<10?"0":"")+x;}
+
+function toggleRest(exId){
+  var t=restTimers[exId];
+  if(t&&t.interval){ // pausar
+    clearInterval(t.interval);t.interval=null;
+    updateRestUI(exId);
+    return;
+  }
+  if(!t){t={remaining:REST_SECONDS,interval:null};restTimers[exId]=t;}
+  t.interval=setInterval(function(){
+    t.remaining--;
+    if(t.remaining<=0){
+      clearInterval(t.interval);t.interval=null;t.remaining=0;
+      updateRestUI(exId,true);
+      // bip leve via vibração se disponível (iOS ignora, mas Android responde)
+      if(navigator.vibrate){navigator.vibrate(200);}
+      setTimeout(function(){t.remaining=REST_SECONDS;updateRestUI(exId);},1500);
+    }else{updateRestUI(exId);}
+  },1000);
+  updateRestUI(exId);
+}
+
+function updateRestUI(exId,done){
+  var lbl=document.getElementById("rt-"+exId);
+  var btn=document.getElementById("rb-"+exId);
+  if(!lbl||!btn)return;
+  var t=restTimers[exId];
+  var rem=t?t.remaining:REST_SECONDS;
+  if(done){lbl.innerHTML="Descanso <b>concluído ✓</b>";btn.textContent="Repetir";btn.className="rbtn";return;}
+  lbl.innerHTML="Descanso · <b>"+fmtSec(rem)+"</b>";
+  if(t&&t.interval){btn.textContent="Pausar";btn.className="rbtn run";}
+  else{btn.textContent=(rem<REST_SECONDS?"Continuar":"Iniciar");btn.className="rbtn";}
+}
+
 function renderWarm(){
+  // limpa timers ativos ao re-renderizar
+  for(var key in restTimers){if(restTimers[key]&&restTimers[key].interval){clearInterval(restTimers[key].interval);}}
+  restTimers={};
   var data=WARMUPS[curPhase];
   document.getElementById("warmnote").innerHTML="<b>15 min</b> · "+data.note;
   var box=document.getElementById("warmlist");box.innerHTML="";
   var di=todayISO();
   if(!warmState[di])warmState[di]={};
-  var doneCount=0;
-  for(var i=0;i<data.ex.length;i++){(function(ex){
+  var doneCount=0,total=data.ex.length;
+  for(var i=0;i<data.ex.length;i++){(function(ex,idx){
     var done=!!warmState[di][ex.id];
     if(done)doneCount++;
+    var pose=POSES[ex.icon]||POSES.hip;
     var el=document.createElement("div");el.className="warm"+(done?" done":"");
-    el.innerHTML='<div class="svgbox">'+SVG[ex.icon]+'</div>'+
-      '<div class="wb"><div class="wtop"><h4>'+ex.t+'</h4><span class="dur">'+ex.dur+'</span></div><p>'+ex.p+'</p></div>'+
-      '<div class="wck">'+(done?"✓":"")+'</div>';
-    el.onclick=function(){
+    var restHTML="";
+    if(idx<total-1){ // descanso entre movimentos, não após o último
+      restHTML='<div class="rest">'+
+        '<div class="rt" id="rt-'+ex.id+'">Descanso · <b>'+fmtSec(REST_SECONDS)+'</b></div>'+
+        '<button class="rbtn" id="rb-'+ex.id+'" onclick="toggleRest(\''+ex.id+'\')">Iniciar</button></div>';
+    }
+    el.innerHTML=
+      '<div class="wtop"><h4>'+ex.t+'</h4><span class="dur">'+ex.dur+'</span>'+
+      '<div class="wck" data-ck="'+ex.id+'">'+(done?"✓":"")+'</div></div>'+
+      '<div class="figs">'+
+        '<div class="fig">'+pose.a+'<div class="flbl">Início</div></div>'+
+        '<div class="arrow">→</div>'+
+        '<div class="fig">'+pose.b+'<div class="flbl b">Movimento</div></div>'+
+      '</div>'+
+      '<p>'+ex.p+'</p>'+restHTML;
+    // clique só no checkbox alterna conclusão
+    var ck=el.querySelector('[data-ck]');
+    ck.onclick=function(){
       var d=todayISO();if(!warmState[d])warmState[d]={};
       warmState[d][ex.id]=!warmState[d][ex.id];
       save(KEY_WARM,warmState);renderWarm();
     };
     box.appendChild(el);
-  })(data.ex[i]);}
-  var total=data.ex.length;
+  })(data.ex[i],i);}
   var sum=document.getElementById("warmsum");
   if(doneCount===total){sum.innerHTML="✓ <b>Aquecimento completo hoje!</b> Bom treino.";}
   else{sum.innerHTML="<b>"+doneCount+"/"+total+"</b> concluídos hoje ("+todayISO().split("-").reverse().slice(0,2).join("/")+")";}
