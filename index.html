@@ -115,12 +115,29 @@
   .warm .wck{flex:0 0 auto;width:28px;height:28px;border-radius:50%;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#000;cursor:pointer;}
   .warm.done .wck{background:var(--green);border-color:var(--green);}
   .warm.done h4{color:var(--mut);}
-  .warm .figs{display:flex;gap:10px;margin:12px 0 0 0;}
-  .warm .fig{flex:1;background:var(--card2);border-radius:14px;padding:8px 4px 6px 4px;text-align:center;}
-  .warm .fig svg{width:100%;height:96px;display:block;}
-  .warm .fig .flbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--mut);margin-top:2px;}
+  .warm .figs{display:flex;gap:10px;margin:12px 0 0 0;align-items:stretch;}
+  /* quadro animado (esquerda) — poses empilhadas via grid */
+  .warm .figanim{flex:1.3;background:var(--card2);border-radius:14px;padding:8px;text-align:center;display:grid;grid-template-columns:1fr;}
+  .warm .figanim>div{grid-row:1;grid-column:1;}
+  .warm .figanim .poseA svg,.warm .figanim .poseB svg{width:100%;height:118px;display:block;}
+  .warm .figanim .poseA{animation:poseFade 2.4s ease-in-out infinite;}
+  .warm .figanim .poseB{animation:poseFade 2.4s ease-in-out infinite reverse;}
+  .warm .figanim .anlbl{align-self:end;justify-self:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--green);pointer-events:none;}
+  @keyframes poseFade{
+    0%,18%{opacity:1;}
+    50%,68%{opacity:0;}
+    100%{opacity:1;}
+  }
+  /* miniaturas de referência (direita) */
+  .warm .figref{flex:1;display:flex;flex-direction:column;gap:8px;}
+  .warm .fig{flex:1;background:var(--card2);border-radius:14px;padding:6px 4px 4px 4px;text-align:center;display:flex;flex-direction:column;justify-content:center;}
+  .warm .fig svg{width:100%;height:54px;display:block;}
+  .warm .fig .flbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--mut);margin-top:1px;}
   .warm .fig .flbl.b{color:var(--green);}
-  .warm .arrow{flex:0 0 auto;display:flex;align-items:center;color:var(--mut2);font-size:22px;font-weight:800;}
+  @media (prefers-reduced-motion: reduce){
+    .warm .figanim .poseA,.warm .figanim .poseB{animation:none;}
+    .warm .figanim .poseB{opacity:0;}
+  }
   .warm p{margin:11px 0 0 0;font-size:13.5px;color:#d1d1d6;font-weight:500;line-height:1.45;}
   /* timer de descanso */
   .rest{display:flex;align-items:center;gap:12px;margin-top:13px;background:var(--card2);border-radius:14px;padding:11px 14px;}
@@ -502,9 +519,15 @@ function renderWarm(){
       '<div class="wtop"><h4>'+ex.t+'</h4><span class="dur">'+ex.dur+'</span>'+
       '<div class="wck" data-ck="'+ex.id+'">'+(done?"✓":"")+'</div></div>'+
       '<div class="figs">'+
-        '<div class="fig">'+pose.a+'<div class="flbl">Início</div></div>'+
-        '<div class="arrow">→</div>'+
-        '<div class="fig">'+pose.b+'<div class="flbl b">Movimento</div></div>'+
+        '<div class="figanim">'+
+          '<div class="poseA">'+pose.a+'</div>'+
+          '<div class="poseB">'+pose.b+'</div>'+
+          '<div class="anlbl">▶ movimento</div>'+
+        '</div>'+
+        '<div class="figref">'+
+          '<div class="fig">'+pose.a+'<div class="flbl">Início</div></div>'+
+          '<div class="fig">'+pose.b+'<div class="flbl b">Fim</div></div>'+
+        '</div>'+
       '</div>'+
       '<p>'+ex.p+'</p>'+restHTML;
     // clique só no checkbox alterna conclusão
@@ -765,4 +788,3 @@ function exportData(){
 </script>
 </body>
 </html>
-
