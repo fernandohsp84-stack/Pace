@@ -106,6 +106,21 @@
   .status.ok{color:var(--green);} .status.err{color:var(--red);}
   .proj{font-size:13.5px;font-weight:600;margin-top:12px;padding:12px;border-radius:12px;background:var(--card2);}
   .proj b{font-weight:800;}
+  /* aquecimento */
+  .warm{display:flex;gap:14px;align-items:flex-start;padding:16px 0;border-top:0.5px solid var(--card2);cursor:pointer;}
+  .warm:first-child{border-top:none;padding-top:2px;}
+  .warm .svgbox{flex:0 0 auto;width:72px;height:72px;border-radius:16px;background:var(--card2);display:flex;align-items:center;justify-content:center;}
+  .warm .svgbox svg{width:54px;height:54px;}
+  .warm .wb{flex:1;}
+  .warm .wb .wtop{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .warm .wb h4{margin:0;font-size:16px;font-weight:800;letter-spacing:-0.3px;}
+  .warm .wb .dur{font-size:12px;font-weight:800;color:var(--green);white-space:nowrap;}
+  .warm .wb p{margin:5px 0 0 0;font-size:13.5px;color:#d1d1d6;font-weight:500;line-height:1.45;}
+  .warm .wck{flex:0 0 auto;width:28px;height:28px;border-radius:50%;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#000;margin-top:2px;}
+  .warm.done .wck{background:var(--green);border-color:var(--green);}
+  .warm.done h4{color:var(--mut);}
+  .warmsum{text-align:center;font-size:14px;font-weight:700;color:var(--mut);margin:4px 4px 0 4px;}
+  .warmsum b{color:var(--green);}
   .hide{display:none;}
   .foot{text-align:center;color:var(--mut2);font-size:12px;margin-top:26px;font-weight:600;}
 </style>
@@ -144,6 +159,7 @@
     <button class="on" onclick="show('plano',this)">Plano</button>
     <button onclick="show('marcos',this)">Marcos</button>
     <button onclick="show('detalhe',this)">Atividades</button>
+    <button onclick="show('aquecer',this)">Aquecer</button>
     <button onclick="show('registro',this)">Registro</button>
   </div>
 
@@ -181,6 +197,21 @@
     <div class="shead">Como cumprir cada marco</div>
     <div class="ssub">As atividades concretas por trás de cada checkpoint.</div>
     <div class="card"><div id="detlist"></div></div>
+  </div>
+
+  <!-- ============ AQUECIMENTO / ALONGAMENTO ============ -->
+  <div id="aquecer" class="hide">
+    <div class="shead">Aquecer 15 min</div>
+    <div class="ssub">Rotina antes de cada corrida. Escolha a fase atual.</div>
+    <div class="seg" id="phaseseg">
+      <button class="on" onclick="setPhase(1,this)">Fase 1</button>
+      <button onclick="setPhase(2,this)">Fase 2</button>
+      <button onclick="setPhase(3,this)">Fase 3</button>
+      <button onclick="setPhase(4,this)">Fase 4</button>
+    </div>
+    <div class="note" id="warmnote"></div>
+    <div class="card"><div id="warmlist"></div></div>
+    <div class="warmsum" id="warmsum"></div>
   </div>
 
   <!-- ============ REGISTRO ============ -->
@@ -226,7 +257,7 @@
 </div>
 
 <script>
-var KEY_LOGS="p510_logs", KEY_MS="p510_ms";
+var KEY_LOGS="p510_logs", KEY_MS="p510_ms", KEY_WARM="p510_warm";
 var GOAL_PACE=5.1667;
 var START_PACE=6.5;          // referência inicial (6:30)
 var PLAN_START="2026-01-01"; // início da periodização
@@ -296,9 +327,116 @@ function load(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 var logs=load(KEY_LOGS)||[];
 var msState=load(KEY_MS)||{};
+var warmState=load(KEY_WARM)||{};   // {dataISO: {exId:true}}
+var curPhase=1;
+
+/* ---- SVGs inline (bonecos de posição) ---- */
+var SVG={
+  // mobilidade de quadril / balanço de perna
+  hip:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="11" r="5" fill="#a5fe3a" stroke="none"/><path d="M30 16v16"/><path d="M30 22l-9 5"/><path d="M30 22l9 5"/><path d="M30 32l-7 13"/><path d="M30 32l11 9"/></svg>',
+  // agachamento / mobilidade tornozelo
+  squat:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="12" r="5" fill="#a5fe3a" stroke="none"/><path d="M30 17v11"/><path d="M30 21l-8 3"/><path d="M30 21l8 3"/><path d="M30 28l-9 6 4 11"/><path d="M30 28l9 6-4 11"/></svg>',
+  // alongamento panturrilha (em pé contra parede)
+  calf:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8v44"/><circle cx="30" cy="14" r="5" fill="#a5fe3a" stroke="none"/><path d="M30 19l-6 12"/><path d="M30 21l-14-3"/><path d="M30 21l8 7"/><path d="M30 31l-6 18"/><path d="M30 31l13 16"/></svg>',
+  // joelho ao peito / quadríceps
+  knee:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="12" r="5" fill="#a5fe3a" stroke="none"/><path d="M24 17v13"/><path d="M24 30l14-2 0 8"/><path d="M24 30l-5 17"/><path d="M24 22l8 3"/><path d="M24 22l-7 4"/></svg>',
+  // skipping / joelho alto (ativação dinâmica)
+  skip:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="11" r="5" fill="#a5fe3a" stroke="none"/><path d="M32 16v14"/><path d="M32 21l9-4"/><path d="M32 21l-8 5"/><path d="M32 30l10 4"/><path d="M32 30l-3 9 8 8"/></svg>',
+  // educativo de corrida / tiro curto
+  stride:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="33" cy="11" r="5" fill="#a5fe3a" stroke="none"/><path d="M33 16l-2 13"/><path d="M31 20l11 2"/><path d="M31 20l-9 6"/><path d="M31 29l13 7"/><path d="M31 29l-9 15"/></svg>',
+  // rotação de tronco / ativação core
+  twist:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="11" r="5" fill="#a5fe3a" stroke="none"/><path d="M30 16v14"/><path d="M16 21h28"/><path d="M30 30l-7 17"/><path d="M30 30l7 17"/></svg>',
+  // ponte de glúteo
+  bridge:'<svg viewBox="0 0 60 60" fill="none" stroke="#a5fe3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="30" r="5" fill="#a5fe3a" stroke="none"/><path d="M18 30h14l8-10"/><path d="M40 20l6 12"/><path d="M32 30l8 14"/><path d="M46 32v14"/></svg>'
+};
+
+/* Rotina por fase: 15 min, foco evolui (base/joelho → ativação/velocidade) */
+var WARMUPS={
+  1:{ // Base aeróbica — mobilidade e proteção do joelho
+    note:"Fase base: aquecer articulações e ativar glúteo/joelho. Tudo suave, sem forçar amplitude.",
+    ex:[
+      {id:"f1a",icon:"hip",t:"Balanço de perna",dur:"2 min",p:"Apoie numa parede e balance cada perna pra frente e pra trás, 15× cada. Solta o quadril."},
+      {id:"f1b",icon:"squat",t:"Agachamento livre lento",dur:"3 min",p:"3×10 descendo devagar, joelho alinhado com o pé. Mobiliza tornozelo e ativa coxa."},
+      {id:"f1c",icon:"bridge",t:"Ponte de glúteo",dur:"3 min",p:"3×12 deitado, eleve o quadril contraindo o glúteo. Estabiliza o joelho na corrida."},
+      {id:"f1d",icon:"calf",t:"Mobilidade de panturrilha",dur:"3 min",p:"Contra a parede, perna estendida atrás, empurre o calcanhar ao chão. 30s cada lado, 2×."},
+      {id:"f1e",icon:"knee",t:"Joelho ao peito (dinâmico)",dur:"2 min",p:"Em pé, puxe o joelho ao peito alternando, 10× cada. Caminhe enquanto faz."},
+      {id:"f1f",icon:"stride",t:"Trote leve progressivo",dur:"2 min",p:"Comece andando rápido e transicione pra trote bem leve. Prepara pro ritmo do dia."}
+    ]
+  },
+  2:{ // Limiar — adicionar amplitude e ativação dinâmica
+    note:"Fase limiar: mobilidade + começo de ativação dinâmica pra suportar tempo runs.",
+    ex:[
+      {id:"f2a",icon:"hip",t:"Balanço de perna multidirecional",dur:"2 min",p:"Frente-trás e lateral, 12× cada direção por perna. Abre o quadril."},
+      {id:"f2b",icon:"squat",t:"Agachamento + mobilidade tornozelo",dur:"3 min",p:"3×10 agachamento, descendo bem; entre as séries, avance o joelho sobre o pé pra soltar o tornozelo."},
+      {id:"f2c",icon:"twist",t:"Rotação de tronco",dur:"2 min",p:"Pés afastados, gire o tronco solto de um lado ao outro, 15×. Ativa o core."},
+      {id:"f2d",icon:"knee",t:"Quadríceps em pé",dur:"3 min",p:"Puxe o calcanhar ao glúteo, 20s cada lado, 2×. Mantenha os joelhos juntos."},
+      {id:"f2e",icon:"skip",t:"Skipping baixo",dur:"3 min",p:"Joelho na altura média, ritmo leve, 2×30s. Acende o sistema neuromuscular."},
+      {id:"f2f",icon:"stride",t:"Trote progressivo",dur:"2 min",p:"Trote leve acelerando aos poucos até o ritmo do tempo run."}
+    ]
+  },
+  3:{ // Velocidade — ativação dinâmica e educativos (sem alongamento estático longo)
+    note:"Fase velocidade: ativação dinâmica e educativos. Evite alongamento estático longo antes de tiros.",
+    ex:[
+      {id:"f3a",icon:"hip",t:"Balanço de perna amplo",dur:"2 min",p:"Amplitude maior agora, 15× cada perna. Quadril precisa estar solto pros tiros."},
+      {id:"f3b",icon:"twist",t:"Ativação de core",dur:"2 min",p:"Rotação de tronco + prancha 2×20s. Tronco firme transfere força nos tiros."},
+      {id:"f3c",icon:"skip",t:"Skipping alto",dur:"3 min",p:"Joelho alto, 3×30s com pausa. Ensaia a mecânica de corrida rápida."},
+      {id:"f3d",icon:"bridge",t:"Ativação de glúteo",dur:"2 min",p:"Ponte unipodal 2×8 cada perna. Glúteo forte protege o joelho na velocidade."},
+      {id:"f3e",icon:"stride",t:"Educativos (drills)",dur:"3 min",p:"Anfersen e elevação de joelho, 2×20m cada. Técnica antes da intensidade."},
+      {id:"f3f",icon:"stride",t:"Tiros de aceleração",dur:"3 min",p:"4× ~60m acelerando progressivo até 90%, caminhando na volta. Prepara pros intervalados."}
+    ]
+  },
+  4:{ // Afiamento — manutenção, leve, foco em prontidão
+    note:"Fase afiamento: aquecer bem mas economizar energia. Pronto pra pace alvo, sem fadiga.",
+    ex:[
+      {id:"f4a",icon:"hip",t:"Mobilidade de quadril",dur:"3 min",p:"Balanço de perna + círculos de quadril, soltos, 12× cada. Acorda as articulações."},
+      {id:"f4b",icon:"twist",t:"Rotação de tronco leve",dur:"2 min",p:"15× soltando o tronco. Sem intensidade, só mobilidade."},
+      {id:"f4c",icon:"skip",t:"Skipping curto",dur:"2 min",p:"2×20s ritmo leve. Liga o sistema sem cansar."},
+      {id:"f4d",icon:"stride",t:"Educativos curtos",dur:"3 min",p:"Anfersen e skipping, 1×20m cada. Só pra lembrar a técnica."},
+      {id:"f4e",icon:"stride",t:"Tiros de ativação",dur:"3 min",p:"3-4 tiros curtos a ritmo de prova, com recuperação completa. Calibra o pace alvo."},
+      {id:"f4f",icon:"knee",t:"Respiração + foco",dur:"2 min",p:"Caminhada calma, respiração profunda. Cabeça na estratégia de ritmo."}
+    ]
+  }
+};
+
+function todayISO(){var t=new Date();return t.getFullYear()+"-"+("0"+(t.getMonth()+1)).slice(-2)+"-"+("0"+t.getDate()).slice(-2);}
+
+function setPhase(ph,btn){
+  curPhase=ph;
+  var b=document.querySelectorAll("#phaseseg button");
+  for(var i=0;i<b.length;i++){b[i].className="";}
+  btn.className="on";
+  renderWarm();
+}
+
+function renderWarm(){
+  var data=WARMUPS[curPhase];
+  document.getElementById("warmnote").innerHTML="<b>15 min</b> · "+data.note;
+  var box=document.getElementById("warmlist");box.innerHTML="";
+  var di=todayISO();
+  if(!warmState[di])warmState[di]={};
+  var doneCount=0;
+  for(var i=0;i<data.ex.length;i++){(function(ex){
+    var done=!!warmState[di][ex.id];
+    if(done)doneCount++;
+    var el=document.createElement("div");el.className="warm"+(done?" done":"");
+    el.innerHTML='<div class="svgbox">'+SVG[ex.icon]+'</div>'+
+      '<div class="wb"><div class="wtop"><h4>'+ex.t+'</h4><span class="dur">'+ex.dur+'</span></div><p>'+ex.p+'</p></div>'+
+      '<div class="wck">'+(done?"✓":"")+'</div>';
+    el.onclick=function(){
+      var d=todayISO();if(!warmState[d])warmState[d]={};
+      warmState[d][ex.id]=!warmState[d][ex.id];
+      save(KEY_WARM,warmState);renderWarm();
+    };
+    box.appendChild(el);
+  })(data.ex[i]);}
+  var total=data.ex.length;
+  var sum=document.getElementById("warmsum");
+  if(doneCount===total){sum.innerHTML="✓ <b>Aquecimento completo hoje!</b> Bom treino.";}
+  else{sum.innerHTML="<b>"+doneCount+"/"+total+"</b> concluídos hoje ("+todayISO().split("-").reverse().slice(0,2).join("/")+")";}
+}
 
 function show(id,btn){
-  var ids=["plano","marcos","detalhe","registro"];
+  var ids=["plano","marcos","detalhe","aquecer","registro"];
   for(var i=0;i<ids.length;i++){document.getElementById(ids[i]).className=(ids[i]===id?"":"hide");}
   var b=document.querySelectorAll(".seg button");
   for(var j=0;j<b.length;j++){b[j].className="";}
@@ -524,7 +662,7 @@ function updateStats(){
 }
 
 function exportData(){
-  var data={logs:logs,milestones:msState,exported:new Date().toISOString()};
+  var data={logs:logs,milestones:msState,warmups:warmState,exported:new Date().toISOString()};
   var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="projeto-510-dados.json";
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
@@ -536,7 +674,7 @@ function exportData(){
   var dias=["DOM","SEG","TER","QUA","QUI","SEX","SÁB"];
   var meses=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
   document.getElementById("today").textContent=dias[t.getDay()]+" · "+t.getDate()+" "+meses[t.getMonth()];
-  renderMs();renderDetail();renderLogs();updateStats();drawChart();drawGoal();
+  renderMs();renderDetail();renderWarm();renderLogs();updateStats();drawChart();drawGoal();
 })();
 </script>
 </body>
